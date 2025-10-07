@@ -74,6 +74,11 @@ bool UUCraftingComponent::CanCraft(UCraftingRecipeDataAsset* Recipe, AActor* Sta
 
 bool UUCraftingComponent::Craft(UCraftingRecipeDataAsset* Recipe, AActor* Station, EQualityModifier Quality, FString& Error, EMessageType& messageType)
 {
+    if (Quality == EQualityModifier::Fail)
+    {
+        return true;
+    }
+
     if (!CanCraft(Recipe, Station, messageType, Error))
     {
         UE_LOG(LogTemp, Warning, TEXT("Crafting failed: %s"), *Error);
@@ -99,7 +104,7 @@ bool UUCraftingComponent::Craft(UCraftingRecipeDataAsset* Recipe, AActor* Statio
     return true;
 }
 
-bool UUCraftingComponent::GetQualityModifier(float barPosition, float barBound, EQualityModifier& quality, FString& ModifierStatus)
+bool UUCraftingComponent::GetQualityModifier(float barPosition, float barBound, EQualityModifier& quality, FString& ModifierStatus) const
 {
     int scalePosition = 100 * barPosition / barBound;
     

@@ -33,8 +33,9 @@ public:
 	bool Craft(UCraftingRecipeDataAsset* Recipe, AActor* Station, EQualityModifier Quality, FString& Error, EMessageType& messageType);
 
 	UFUNCTION(BlueprintCallable, Category = "Crafting")
-	bool GetQualityModifier(float barPosition, float barBound, EQualityModifier& quality, FString& ModifierStatus);
+	bool GetQualityModifier(float barPosition, float barBound, EQualityModifier& quality, FString& ModifierStatus) const;
 
+public:
 	UUInventoryComponent* GetInventory() const;
 
 	bool CheckInventoryForRecipeItems(UCraftingRecipeDataAsset* Recipe) const;
