@@ -40,7 +40,7 @@ public:
 	void AddItem(UItemDataAsset* NewItem);
 	
 	UFUNCTION(BlueprintCallable)
-	void RemoveItem(UItemDataAsset* NewItem, int Quantity = 1);
+	void RemoveItem(UItemDataAsset* Item, int Quantity = 1);
 
 	bool HasRequiredItem(const UItemDataAsset* Item) const;
 
@@ -48,4 +48,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FInventoryItem> Items;
+
+	TMap<uint64, FInventoryItem> ItemMap;
 };

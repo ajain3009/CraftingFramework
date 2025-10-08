@@ -18,8 +18,14 @@ void UUInventoryComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
-	
+	ItemMap.Empty();
+	for (const FInventoryItem& Item : Items)
+	{
+		if (Item.ItemData)
+		{
+			ItemMap.Add(Item.ItemData->ObjectID, Item);
+		}
+	}
 }
 
 // Called every frame
@@ -32,84 +38,92 @@ void UUInventoryComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 
 void UUInventoryComponent::AddItem(UItemDataAsset* NewItem)
 {
-	for (FInventoryItem& item : Items)
+	if (!NewItem) return;
+
+	uint64 ID = NewItem->ObjectID;
+	FInventoryItem* Existing = ItemMap.Find(ID);
+
+	if (Existing)
 	{
-		if (item.ItemData == NewItem)
+		if (NewItem->Stackable)
 		{
-			if (item.ItemData->Stackable)
+			Existing->Quantity += 1;
+			for (FInventoryItem& Item : Items)
 			{
-				item.Quantity += 1;
-				return;
+				if (Item.ItemData && Item.ItemData->ObjectID == ID)
+				{
+					Item = *Existing;
+					break;
+				}
 			}
 		}
-		else if(item.Quantity == 0)
+		return;
+	}
+
+	FInventoryItem NewEntry;
+	NewEntry.ItemData = NewItem;
+	NewEntry.Quantity = 1;
+
+	ItemMap.Add(ID, NewEntry);
+
+	for (FInventoryItem& itemslot : Items)
+	{
+		if (!itemslot.ItemData)
 		{
-			item.ItemData = NewItem;
-			item.Quantity = 1;
-			return;
+			itemslot = NewEntry;
+			break;
 		}
 	}
 }
 
-void UUInventoryComponent::RemoveItem(UItemDataAsset* NewItem, int Quantity)
+void UUInventoryComponent::RemoveItem(UItemDataAsset* Item, int Quantity /*= 1*/)
 {
-	for (FInventoryItem& item : Items)
+	if (!Item || Quantity <= 0) return;
+
+	uint64 ID = Item->ObjectID;
+	FInventoryItem* Existing = ItemMap.Find(ID);
+
+	if (!Existing) return;
+
+	Existing->Quantity -= Quantity;
+	if (Existing->Quantity <= 0)
 	{
-		if (item.ItemData == NewItem)
-		{
-			item.Quantity -= Quantity;
-			if (item.Quantity == 0)
+		ItemMap.Remove(ID);
+
+		// Remove from Items array
+		Items.RemoveAll([ID](const FInventoryItem& Item)
 			{
-				item.ItemData = nullptr;
+				return Item.ItemData && Item.ItemData->ObjectID == ID;
+			});
+
+		Items.Add(FInventoryItem());
+	}
+	else
+	{
+		// Sync array quantity
+		for (FInventoryItem& Item : Items)
+		{
+			if (Item.ItemData && Item.ItemData->ObjectID == ID)
+			{
+				Item.Quantity = Existing->Quantity;
 				break;
 			}
 		}
 	}
-
-	TArray<FInventoryItem> TempsItems;
-	TempsItems.Init(FInventoryItem(), Items.Num());
-	int index = 0;
-
-	for (FInventoryItem& item : Items)
-	{
-		if (item.Quantity != 0)
-		{
-			TempsItems[index] = item;
-			index++;
-		}
-	}
-
-	Items = TempsItems;
 }
 
 bool UUInventoryComponent::HasRequiredItem(const UItemDataAsset* Item) const
 {
-	for (FInventoryItem item : Items)
-	{
-		if (item.ItemData == Item)
-		{
-			return true;
-		}
-	}
-
-	return false;
+	if (!Item) return false;
+	return ItemMap.Contains(Item->ObjectID);
 }
 
 bool UUInventoryComponent::HasRequiredItemWithQuantity(const UItemDataAsset* Item, int Quantity) const
 {
-	for (FInventoryItem item : Items)
-	{
-		if (item.ItemData == Item)
-		{
-			if (item.Quantity >= Quantity)
-			{
-				return true;
-			}
-			return true;
-		}
-	}
+	if (!Item || Quantity <= 0) return false;
 
-	return false;
+	const FInventoryItem* Existing = ItemMap.Find(Item->ObjectID);
+	return Existing && Existing->Quantity >= Quantity;
 }
 
 
